@@ -1,0 +1,42 @@
+# ============================================================
+# Prometheus Configuration
+# ============================================================
+# Prometheus scrapes targets at fixed intervals and stores
+# the time-series data locally.
+
+global:
+  scrape_interval: 15s      # How often to scrape targets
+  evaluation_interval: 15s  # How often to evaluate alert rules
+
+# Alert rules are loaded from files in /etc/prometheus/
+rule_files:
+  - "alerts.yml"
+
+# Scrape configurations
+scrape_configs:
+  # --------------------------------------------------------
+  # Prometheus self-monitoring
+  # --------------------------------------------------------
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # --------------------------------------------------------
+  # Next.js application metrics
+  # --------------------------------------------------------
+  # Our Next.js app exposes /api/metrics with eval scores,
+  # latency histograms, and error rates in Prometheus format.
+  - job_name: "nextjs-app"
+    static_configs:
+      - targets: ["nextjs-app:3000"]
+    metrics_path: "/api/metrics"
+    scrape_interval: 15s
+
+  # --------------------------------------------------------
+  # OpenTelemetry Collector self-monitoring
+  # --------------------------------------------------------
+  # The Collector exposes its own metrics (spans received,
+  # exported, dropped, etc.) for operational visibility.
+  - job_name: "otel-collector"
+    static_configs:
+      - targets: ["otel-collector:8889"]
