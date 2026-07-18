@@ -1,0 +1,22 @@
+{
+  "id": "chatcmpl-mock-openai-002",
+  "object": "chat.completion",
+  "created": 1721000000,
+  "model": "gpt-4o-mini",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "Sure! I'd be happy to assist. What would you like to know?"
+      },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 15,
+    "total_tokens": 25
+  },
+  "system_fingerprint": "fp-mock-002"
+}

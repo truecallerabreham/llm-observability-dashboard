@@ -1,0 +1,34 @@
+# ============================================================
+# SDK Clients — Python Dependencies
+# ============================================================
+# Install all SDK dependencies at once:
+#   pip install -r sdk-clients/requirements.txt
+
+# Core OTel
+opentelemetry-api>=1.25.0
+opentelemetry-sdk>=1.25.0
+opentelemetry-exporter-otlp-proto-http>=1.25.0
+
+# OpenAI auto-instrumentation
+opentelemetry-instrumentation-openai>=0.40b0
+
+# Anthropic auto-instrumentation
+opentelemetry-instrumentation-anthropic>=0.34b0
+
+# LangChain auto-instrumentation
+opentelemetry-instrumentation-langchain>=0.34b0
+
+# LlamaIndex auto-instrumentation
+opentelemetry-instrumentation-llamaindex>=0.13b0
+
+# SDK clients (for making actual API calls)
+openai>=1.50.0
+anthropic>=0.39.0
+google-genai>=1.0.0
+langchain>=0.3.0
+langchain-openai>=0.2.0
+llama-index-llms-openai>=0.3.0
+llama-index-core>=0.11.0
+
+# Utilities
+requests>=2.32.0

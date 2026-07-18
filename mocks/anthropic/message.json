@@ -1,0 +1,17 @@
+{
+  "id": "msg-mock-anthropic-001",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "Hello! I'm Claude, Anthropic's AI assistant. I'm here to help with questions, analysis, coding, and creative tasks. What can I assist you with today?"
+    }
+  ],
+  "model": "claude-3.5-sonnet-20241022",
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 15,
+    "output_tokens": 38
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "msg-mock-anthropic-002",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+    {
+      "type": "text",
+      "text": "Hi there! I'm ready to help. What do you need?"
+    }
+  ],
+  "model": "claude-3-5-haiku-20241022",
+  "stop_reason": "end_turn",
+  "usage": {
+    "input_tokens": 12,
+    "output_tokens": 12
+  }
+}
