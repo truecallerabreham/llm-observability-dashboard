@@ -1,0 +1,181 @@
+services:
+  # ============================================================
+  # CLICKHOUSE — Columnar OLAP database for trace/span storage
+  # ============================================================
+  # Why ClickHouse? It's optimized for analytical queries over
+  # millions of rows (OLAP). It compresses data 92% and answers
+  # aggregations in sub-seconds. Postgres can't handle this
+  # workload — it's optimized for transactional row-level ops (OLTP).
+  #
+  # Ports:
+  #   8123 — HTTP interface (used by OTel Collector and our app)
+  #   9000 — Native TCP protocol (faster for bulk inserts)
+  #   9009 — Inter-server replication (not needed for single-node)
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_TCP_PORT:-9000}:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB:-otel}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-admin}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-changeme}
+    # ulimits: ClickHouse needs high file descriptor limits for
+    # concurrent queries. 262144 is the recommended minimum.
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    # healthcheck: Docker waits for this command to succeed before
+    # marking the service as "healthy". Other services that depend
+    # on ClickHouse (like the OTel Collector) won't start until
+    # this passes.
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--query", "SELECT 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ============================================================
+  # POSTGRES — Transactional database for metadata
+  # ============================================================
+  # Why Postgres for metadata? User accounts, API keys, project
+  # settings, and model pricing tables need ACID transactions and
+  # in-place updates. ClickHouse doesn't support efficient row
+  # updates (it uses eventual dedup via ReplacingMergeTree).
+  # Postgres handles this perfectly.
+  #
+  # We use the alpine variant (smaller image, ~150MB vs ~400MB).
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-observability}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-admin} -d ${POSTGRES_DB:-observability}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # ============================================================
+  # OTEL COLLECTOR — Receives, processes, and exports traces
+  # ============================================================
+  # Why a collector? It sits between SDKs and storage to:
+  #   1. Tail-sample: keep 100% errors, 10% successes
+  #   2. Batch: group spans into bulk inserts (5000+ rows)
+  #   3. Fan-out: send to ClickHouse AND Prometheus simultaneously
+  #   4. Memory-limit: prevent OOM under spike traffic
+  #
+  # We use "contrib" distribution (not core) because the
+  # ClickHouse exporter is only in the contrib build.
+  #
+  # The config file is mounted as a volume so you can edit it
+  # without rebuilding the image.
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.108.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "${OTEL_HTTP_PORT:-4318}:4318"   # OTLP HTTP (SDKs send here)
+      - "${OTEL_GRPC_PORT:-4317}:4317"   # OTLP gRPC (alternative)
+      - "${OTEL_HEALTH_PORT:-13133}:13133"  # Health check
+      - "${OTEL_METRICS_PORT:-8889}:8889"   # Prometheus self-metrics
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================================
+  # NEXT.JS DASHBOARD — The observability UI
+  # ============================================================
+  # Why Next.js 15? Server Components for fast data fetching from
+  # ClickHouse, Client Components for interactive charts (Recharts).
+  # App Router gives us file-based routing for the 6 dashboard pages.
+  #
+  # The build context is ./dashboard because the Next.js project
+  # lives in a subdirectory. The Dockerfile will be created in U9.
+  # For now, we use a placeholder — Docker Compose won't build it
+  # until the Dockerfile exists.
+  nextjs-app:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "${NEXTJS_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-observability}
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-admin}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-changeme}
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DB:-otel}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    restart: unless-stopped
+    # Profile: only starts when you explicitly run:
+    #   docker compose --profile frontend up
+    # This lets the infra services run without the dashboard code.
+    profiles:
+      - frontend
+
+  # ============================================================
+  # PROMETHEUS — Metrics collection and alerting rules
+  # ============================================================
+  # Why Prometheus? It's the industry standard for metric-based
+  # monitoring. It scrapes metrics endpoints every 15s, evaluates
+  # alert rules, and sends firing alerts to Alertmanager.
+  #
+  # Our Next.js app exports eval scores and latency as Prometheus
+  # metrics at /api/metrics. Prometheus scrapes this endpoint.
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'  # Allows hot-reload via POST /-/reload
+    restart: unless-stopped
+
+  # ============================================================
+  # ALERTMANAGER — Alert routing to Slack/PagerDuty
+  # ============================================================
+  # Why a separate service? Alertmanager handles alert grouping
+  # (10 identical alerts → 1 notification), deduplication,
+  # silence rules, and routing (warnings → Slack, criticals → PD).
+  # Building this from scratch is months of work.
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    ports:
+      - "${ALERTMANAGER_PORT:-9093}:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    restart: unless-stopped
+
+# ============================================================
+# VOLUMES — Persistent data storage
+# ============================================================
+# Named volumes persist data across container restarts.
+# Without these, restarting a container wipes its data.
+volumes:
+  clickhouse_data:
+  postgres_data:
+  prometheus_data:
+  alertmanager_data:
