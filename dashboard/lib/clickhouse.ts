@@ -42,8 +42,15 @@ export async function queryClickHouse<T = Record<string, unknown>>(
     query_params: params,
     format: "JSONEachRow",
   });
-  const text = await result.text();
-  return JSON.parse(text) as T[];
+  // Use the library's json() helper which correctly handles JSONEachRow.
+  // json() returns an array of rows already parsed; for JSONEachRow it also
+  // accepts the response and yields the rows.
+  const data = (await result.json()) as T[] | { data: T[] } | unknown;
+  if (Array.isArray(data)) return data as T[];
+  if (data && typeof data === "object" && Array.isArray((data as { data?: T[] }).data)) {
+    return (data as { data: T[] }).data;
+  }
+  return [];
 }
 
 /**

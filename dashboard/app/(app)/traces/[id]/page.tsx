@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTraceWaterfall } from "@/lib/services/traces";
+import { getTraceWaterfall, type Trace, type TraceWaterfall } from "@/lib/services/traces";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +9,13 @@ export default async function TraceDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const spans = await getTraceWaterfall(id).catch(() => []);
+  const spans: Trace[] = await getTraceWaterfall(id).catch(() => []);
 
   // Build waterfall: calculate depth from ParentSpanId
-  const spanMap = new Map(spans.map((s) => [s.SpanId, { ...s, depth: 0 }]));
-  const roots: typeof spans = [];
+  const spanMap = new Map<string, TraceWaterfall>(
+    spans.map((s) => [s.SpanId, { ...s, depth: 0, children: [] }])
+  );
+  const roots: TraceWaterfall[] = [];
 
   spans.forEach((span) => {
     if (span.ParentSpanId && spanMap.has(span.ParentSpanId)) {

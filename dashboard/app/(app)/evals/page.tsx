@@ -4,7 +4,7 @@ import {
   getModelComparison,
   getTotalEvals,
 } from "@/lib/services/evals";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { FaithfulnessTrend, ToxicityBreakdown } from "./charts";
 
 export const dynamic = "force-dynamic";
 
@@ -28,43 +28,13 @@ export default async function EvalsPage() {
       {/* Faithfulness Trend */}
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="text-sm font-medium text-foreground mb-4">Faithfulness Trend (30d)</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={faithfulness}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="day" stroke="var(--muted-foreground)" fontSize={12} />
-            <YAxis stroke="var(--muted-foreground)" fontSize={12} domain={[0, 1]} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "var(--card)",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                color: "var(--foreground)",
-              }}
-            />
-            <Line type="monotone" dataKey="avg_score" stroke="#22c55e" strokeWidth={2} dot={false} />
-          </LineChart>
-        </ResponsiveContainer>
+        <FaithfulnessTrend data={faithfulness} />
       </div>
 
       {/* Toxicity Breakdown */}
       <div className="rounded-xl border border-border bg-card p-6">
         <h3 className="text-sm font-medium text-foreground mb-4">Toxicity Breakdown</h3>
-        <ResponsiveContainer width="100%" height={250}>
-          <BarChart data={toxicity} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis type="number" stroke="var(--muted-foreground)" fontSize={12} domain={[0, 1]} />
-            <YAxis type="category" dataKey="category" stroke="var(--muted-foreground)" fontSize={12} width={120} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: "var(--card)",
-                border: "1px solid var(--border)",
-                borderRadius: "8px",
-                color: "var(--foreground)",
-              }}
-            />
-            <Bar dataKey="score" fill="#ef4444" radius={[0, 4, 4, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
+        <ToxicityBreakdown data={toxicity} />
       </div>
 
       {/* Model Comparison Table */}

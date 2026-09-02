@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS eval_spans
     EvaluatedModel   LowCardinality(String),
 
     -- Timing
-    EvaluatedAt      DateTime64(3),
+    EvaluatedAt      DateTime,
 
     -- Ingestion metadata
     InsertedAt       DateTime DEFAULT now()

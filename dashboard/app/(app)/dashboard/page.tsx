@@ -43,13 +43,13 @@ export default async function OverviewPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SpansChart
-          data={spansData}
+          data={spansData as Record<string, unknown>[]}
           xKey="time"
           yKey="value"
           title="Spans per Minute (24h)"
         />
         <LatencyChart
-          data={latencyData}
+          data={latencyData as Record<string, unknown>[]}
           xKey="time"
           yKey="value"
           title="P95 Latency (24h)"

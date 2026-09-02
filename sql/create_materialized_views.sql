@@ -113,8 +113,8 @@ CREATE TABLE IF NOT EXISTS alert_history
     Severity        LowCardinality(String),   -- warning, critical
     Status          LowCardinality(String),   -- firing, resolved
     Description     String,
-    FiredAt         DateTime64(3),
-    ResolvedAt      Nullable(DateTime64(3)),
+    FiredAt         DateTime,
+    ResolvedAt      Nullable(DateTime),
     InsertedAt      DateTime DEFAULT now()
 )
 ENGINE = MergeTree()
@@ -134,7 +134,7 @@ CREATE TABLE IF NOT EXISTS pii_triage_queue
     Score           Float64,
     DetectedItems   String,           -- JSON array of detected PII items
     ResponseText    String,
-    EvaluatedAt     DateTime64(3),
+    EvaluatedAt     DateTime,
     Resolved        UInt8 DEFAULT 0,  -- 0 = pending, 1 = resolved
     InsertedAt      DateTime DEFAULT now()
 )

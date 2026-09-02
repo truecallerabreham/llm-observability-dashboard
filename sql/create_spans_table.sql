@@ -40,8 +40,8 @@ CREATE TABLE IF NOT EXISTS otel_traces
     ConversationId   String,
 
     -- Timing
-    StartTime        DateTime64(3),
-    EndTime          DateTime64(3),
+    StartTime        DateTime,
+    EndTime          DateTime,
     DurationMs       Float64,
 
     -- Cost attribution (computed from model_pricing table)

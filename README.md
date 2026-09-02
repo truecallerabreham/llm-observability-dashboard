@@ -1,4 +1,4 @@
-# LLM Observability & Eval Dashboard
+# Local LLM Eval & Observability Dashboard
 
 > Self-hosted observability platform for LLM applications — traces, evals, drift detection, and alerting in one command.
 
@@ -8,11 +8,13 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen)](CONTRIBUTING.md)
 
----
+<p align="center">
+  <img src="docs/static/THE FULL DASHBOARD.png" alt="LLM Observability Dashboard - Full View" width="100%">
+</p>
 
-## What This Does
+A production-grade observability stack for teams shipping LLM applications. It ingests OpenTelemetry GenAI traces from 6 SDK families, stores them in ClickHouse for sub-second analytics, runs automated evals (DeepEval, RAGAS, custom PII judges), detects prompt drift via PSI/KL divergence, and fires alerts through Prometheus/Alertmanager — all behind a single `docker compose up`.
 
-This dashboard ingests OpenTelemetry GenAI traces from 6 SDK families, stores them in ClickHouse, runs eval jobs (DeepEval, RAGAS), detects prompt drift via PSI/KL divergence, and fires alerts through Prometheus/Alertmanager.
+Built for engineers who need to answer: *what is my model doing in production, is it getting worse over time, and when something breaks, how fast can I see it?*
 
 **Quick Start:**
 ```bash
@@ -22,6 +24,38 @@ cp .env.example .env
 docker compose up
 # Open http://localhost:3000
 ```
+
+---
+
+## What It Looks Like
+
+### Traces
+Searchable, filterable trace table with model, provider, status, duration, and token usage — drill down into any trace for a full span-by-span waterfall.
+
+<p align="center">
+  <img src="docs/static/SECOND.png" alt="Traces Page" width="100%">
+</p>
+
+### Drift Detection
+Population Stability Index (PSI) and KL divergence tracked over time, with hard thresholds at 0.20 (warning) and 0.25 (critical). Drift events below are flagged for investigation.
+
+<p align="center">
+  <img src="docs/static/THRID.png" alt="Drift Detection Page" width="100%">
+</p>
+
+### Alerts
+Active alerts at the top, full historical timeline below — every firing and resolved event from Prometheus/Alertmanager, with severity, status, and timestamps.
+
+<p align="center">
+  <img src="docs/static/FOURTH.png" alt="Alerts Page" width="100%">
+</p>
+
+### Evaluations
+LLM-as-judge scores (faithfulness, toxicity, answer relevancy, PII) with 30-day trends, category breakdown, and a per-model comparison table.
+
+<p align="center">
+  <img src="docs/static/FIFTH.png" alt="Evaluations Page" width="100%">
+</p>
 
 ---
 
